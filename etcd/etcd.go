@@ -7,6 +7,7 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
 	"logagent/common"
+	"logagent/tailfile"
 	"time"
 )
 
@@ -53,4 +54,24 @@ func GetConf(key string) (collectEntryList []common.CollectEntry, err error) {
 	}
 
 	return
+}
+
+// 监控etcd里面的日志收集项目里面的变化
+func WatchConf(key string) {
+	watchCh := client.Watch(context.Background(), key)
+	var newConf []common.CollectEntry
+	for wresp := range watchCh {
+		logrus.Info("get new conf from etcd!")
+		for _, evt := range wresp.Events {
+			fmt.Printf("etcd changed:type:%s key:%s value:%s\n", evt.Type, evt.Kv.Key, evt.Kv.Value)
+			err := json.Unmarshal(evt.Kv.Value, &newConf)
+			if err != nil {
+				logrus.Errorf("json unmarshal new conf failed,err:%v", err)
+				continue
+			}
+
+			//告诉tailfile启用新的配置
+			tailfile.SendNewConf(newConf) //没有人接收就是阻塞的
+		}
+	}
 }
