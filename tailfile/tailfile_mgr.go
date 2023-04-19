@@ -48,6 +48,7 @@ func Init(allConf []common.CollectEntry) (err error) {
 	return
 }
 
+// 监听etcd里面配置是否更新
 func (t *tailTaskMgr) watch() {
 	for {
 		//接受新配置
