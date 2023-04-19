@@ -6,9 +6,11 @@ import (
 )
 
 type tailTaskMgr struct {
-	tailTaskMap      map[string]*tailTask
+	tailTaskMap map[string]*tailTask
+	//所有配置项
 	collectEntryList []common.CollectEntry
-	confChan         chan []common.CollectEntry
+	//等待新配置的通道
+	confChan chan []common.CollectEntry
 }
 
 var (
@@ -46,6 +48,7 @@ func Init(allConf []common.CollectEntry) (err error) {
 	return
 }
 
-func (ttMgr *tailTaskMgr) watch() {
-
+func (t *tailTaskMgr) watch() {
+	//接受新配置
+	newConf := <-t.confChan
 }

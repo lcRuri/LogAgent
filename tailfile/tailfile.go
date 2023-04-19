@@ -16,10 +16,6 @@ type tailTask struct {
 	tObj  *tail.Tail
 }
 
-var (
-	confChan chan []common.CollectEntry
-)
-
 func newTailTask(path, topic string) *tailTask {
 	tt := &tailTask{
 		path:  path,
@@ -71,5 +67,5 @@ func (t *tailTask) run() {
 }
 
 func SendNewConf(newConf []common.CollectEntry) {
-	confChan <- newConf
+	ttMgr.confChan <- newConf
 }
