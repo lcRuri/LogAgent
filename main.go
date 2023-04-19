@@ -5,6 +5,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/go-ini/ini"
 	"github.com/sirupsen/logrus"
+	"logagent/etcd"
 	"logagent/kafka"
 	"logagent/tailfile"
 	"strings"
@@ -14,6 +15,7 @@ import (
 type Config struct {
 	KafkaConfig   `ini:"kafka"`
 	CollectConfig `ini:"collect"`
+	EtcdConfig    `ini:"etcd"`
 }
 
 type KafkaConfig struct {
@@ -21,7 +23,10 @@ type KafkaConfig struct {
 	Topic    string `ini:"topic"`
 	ChanSize int64  `ini:"chan_size"`
 }
-
+type EtcdConfig struct {
+	Address    string `ini:"address"`
+	CollectKey string `ini:"collect_key"`
+}
 type CollectConfig struct {
 	LogFilePath string `ini:"logfile_path"`
 }
@@ -68,10 +73,26 @@ func main() {
 		return
 	}
 
-	logrus.Infof("init kafka success!")
+	logrus.Info("init kafka success!")
+
+	//初始化etcd
+	err = etcd.Init([]string{configObj.EtcdConfig.Address})
+	if err != nil {
+		logrus.Error("init etcd failed,err:", err)
+		return
+	}
+
+	//从etcd中拉取要收集日志的配置项
+	allconf, err := etcd.GetConf(configObj.EtcdConfig.CollectKey)
+	if err != nil {
+		logrus.Error("get conf from etcd failed,err:%v", err)
+		return
+	}
+	fmt.Println(allconf)
 
 	//初始化tail
-	err = tailfile.Init(configObj.CollectConfig.LogFilePath)
+	//将从etcd里面读取的配置项传入tail
+	err = tailfile.Init(allconf)
 	if err != nil {
 		logrus.Error("init tailfile failed,err:", err)
 		return
@@ -81,7 +102,7 @@ func main() {
 	//把日志通过sarama发往kafka
 	err = run()
 	if err != nil {
-		logrus.Errorf("run failed,err:%v\n", err)
+		logrus.Error("run failed,err:", err)
 		return
 	}
 }
