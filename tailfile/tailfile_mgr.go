@@ -49,6 +49,56 @@ func Init(allConf []common.CollectEntry) (err error) {
 }
 
 func (t *tailTaskMgr) watch() {
-	//接受新配置
-	newConf := <-t.confChan
+	for {
+		//接受新配置
+		newConf := <-t.confChan
+		logrus.Infof("get new conf from etcd,conf:%v,start managing tailtask", newConf)
+		for _, conf := range newConf {
+			//判断新的配置里面的任务之前是否存在
+			//如果存在 不要动 不存在 添加 如果之前有但是现在没有 停掉
+			//之前存在
+			if t.isExist(conf) {
+				continue
+			}
+			//之前不存在
+			tt := newTailTask(conf.Path, conf.Topic)
+			err := tt.Init()
+			if err != nil {
+				logrus.Errorf("create tailObj for path:%s failed,err:%v", conf.Path, err)
+				return
+			}
+			logrus.Infof("create a tail task for path:%s success", conf.Path)
+			t.tailTaskMap[conf.Path] = tt
+			//后台去收集日志
+			go tt.run()
+		}
+
+		//找到在tailTaskMap里面存在，但是newconf里面不存在的tailtask
+		for key, task := range t.tailTaskMap {
+			var found bool
+			for _, conf := range newConf {
+				if key == conf.Path {
+					found = true
+					break
+				}
+			}
+			//当前key在现在新的conf里面不存在，需要停掉之前的goroutine
+			if !found {
+				//使用task里面的ctx的cancel取消掉goroutine
+				logrus.Infof("the task collect path:%s is stopping", key)
+				delete(t.tailTaskMap, key)
+				task.cancel()
+			}
+		}
+	}
+
+}
+
+func (t *tailTaskMgr) isExist(conf common.CollectEntry) bool {
+	_, ok := t.tailTaskMap[conf.Path]
+	return ok
+}
+
+func SendNewConf(newConf []common.CollectEntry) {
+	ttMgr.confChan <- newConf
 }
