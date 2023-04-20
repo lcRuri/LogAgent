@@ -1,7 +1,6 @@
 package common
 
 import (
-	"fmt"
 	"net"
 	"strings"
 )
@@ -21,7 +20,7 @@ func GetOutboundIP() (ip string, err error) {
 	defer conn.Close()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	fmt.Println(localAddr.String())
+	//fmt.Println(localAddr.String())
 	ip = strings.Split(localAddr.IP.String(), ":")[0]
 	return
 }

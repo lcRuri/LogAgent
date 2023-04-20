@@ -49,7 +49,7 @@ func main() {
 		return
 	}
 
-	fmt.Printf("%#v\n", configObj)
+	//fmt.Printf("%#v\n", configObj)
 
 	//初始化kafka
 	err = kafka.Init([]string{configObj.KafkaConfig.Address}, configObj.KafkaConfig.ChanSize)
