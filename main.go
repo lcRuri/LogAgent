@@ -67,7 +67,7 @@ func main() {
 		return
 	}
 
-	collectKey := fmt.Sprintf(configObj.EtcdConfig.Address, ip)
+	collectKey := fmt.Sprintf(configObj.EtcdConfig.CollectKey, ip)
 	//从etcd中拉取要收集日志的配置项
 	allconf, err := etcd.GetConf(collectKey)
 	if err != nil {
